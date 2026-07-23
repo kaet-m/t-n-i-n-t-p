@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Săn Kho Báu - Đảo Liên Từ</title>
+    <style>
+        :root {
+            --bg-color: #0d1b2a;
+            --card-bg: #1b263b;
+            --gold: #ffb703;
+            --gold-shadow: #fb8500;
+            --sea-blue: #00b4d8;
+            --success: #2a9d8f;
+            --error: #e76f51;
+            --text-light: #edf2f4;
+            --border-color: #415a77;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#1b263b 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            user-select: none;
+        }
+
+        .pirate-card {
+            background: var(--card-bg);
+            border: 3px solid var(--gold);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 520px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 183, 3, 0.2);
+            text-align: center;
+            position: relative;
+        }
+
+        .header-title {
+            color: var(--gold);
+            font-size: 22px;
+            font-weight: 900;
+            margin: 0 0 15px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 1px;
+        }
+
+        .hud-bar {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(13, 27, 42, 0.8);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Khung chứa câu hỏi cố định chiều cao -> Chống nhảy UI tuyệt đối */
+        .treasure-box {
+            background: #0d1b2a;
+            border: 2px dashed var(--sea-blue);
+            border-radius: 15px;
+            height: 130px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+
+        .phrase-tag {
+            font-size: 30px;
+            font-weight: 800;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(255, 183, 3, 0.3);
+            margin-bottom: 6px;
+        }
+
+        .hint-tag {
+            font-size: 13px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        /* Lưới 4 rương kho báu (4 lựa chọn 1-click) */
+        .answers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            min-height: 180px;
+        }
+
+        .chest-btn {
+            background: #2b3a4e;
+            border: 2px solid var(--border-color);
+            color: var(--text-light);
+            padding: 14px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .chest-btn:active {
+            transform: scale(0.96);
+        }
+
+        .chest-btn .sub-text {
+            font-size: 12px;
+            color: var(--sea-blue);
+            font-weight: normal;
+        }
+
+        /* Trạng thái mở rương */
+        .chest-btn.correct {
+            background: var(--success) !important;
+            border-color: #52b788 !important;
+            color: #fff !important;
+        }
+
+        .chest-btn.wrong {
+            background: var(--error) !important;
+            border-color: #f08080 !important;
+            color: #fff !important;
+        }
+
+        .end-screen { display: none; }
+        .restart-btn {
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 14px 30px;
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 5px 0 var(--gold-shadow);
+        }
+
+        .restart-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 var(--gold-shadow);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="pirate-card" id="game-zone">
+        <div class="header-title">🏴‍☠️ TRUY TÌM KHO BÁU LIÊN TỪ</div>
+
+        <div class="hud-bar">
+            <div class="hud-item">🗺️ Đảo: <span id="progress" style="color:var(--sea-blue);">1/32</span></div>
+            <div class="hud-item">💰 Vàng: <span id="score" style="color:var(--gold);">0</span></div>
+            <div class="hud-item">❤️ Mạng: <span id="lives">❤️❤️</span></div>
+        </div>
+
+        <div class="treasure-box">
+            <div class="phrase-tag" id="phrase">in order to</div>
+            <div class="hint-tag">Mật mã mở rương (Chức năng + Cấu trúc):</div>
+        </div>
+
+        <div class="answers-grid" id="options-box">
+            <!-- 4 Rương đáp án sinh tự động tại đây -->
+        </div>
+    </div>
+
+    <!-- Màn hình kết thúc -->
+    <div class="pirate-card end-screen" id="end-zone">
+        <h1 id="end-icon" style="font-size: 50px; margin: 0;">🏆</h1>
+        <h2 id="end-title" style="color: var(--gold); margin: 10px 0;">HOÀN THÀNH HẢI TRÌNH!</h2>
+        <p id="end-desc" style="line-height: 1.6; color: #a3b18a;"></p>
+        <button class="restart-btn" onclick="startGame()">RA KHƠI LẠI ⚓</button>
+    </div>
+
+    <script>
+        // ĐẦY ĐỦ TOÀN BỘ 32 CỤM LIÊN TỪ TỪ DANH SÁCH BÀI HỌC
+        const dataset = [
+            { word: "despite", cat: "Nhượng bộ / Trái ngược", follow: "+ N / V-ing" },
+            { word: "in spite of", cat: "Nhượng bộ / Trái ngược", follow: "+ N / V-ing" },
+            { word: "regardless of", cat: "Nhượng bộ / Trái ngược", follow: "+ N / V-ing" },
+            { word: "contrary to", cat: "Nhượng bộ / Trái ngược", follow: "+ N" },
+            { word: "in contrast to", cat: "Nhượng bộ / Trái ngược", follow: "+ N" },
+            { word: "instead of", cat: "Nhượng bộ / Trái ngược", follow: "+ N / V-ing" },
+            { word: "in place of", cat: "Nhượng bộ / Trái ngược", follow: "+ N" },
+
+            { word: "because of", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { word: "due to", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { word: "owing to", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { word: "on account of", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { word: "thanks to", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { word: "in view of", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { word: "as a result of", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { word: "as a consequence of", cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+
+            { word: "for the purpose of", cat: "Mục đích", follow: "+ V-ing" },
+            { word: "with a view to", cat: "Mục đích", follow: "+ V-ing" },
+            { word: "with the aim of", cat: "Mục đích", follow: "+ V-ing" },
+            { word: "with the intention of", cat: "Mục đích", follow: "+ V-ing" },
+            { word: "for the sake of", cat: "Mục đích", follow: "+ N" },
+            { word: "for the benefit of", cat: "Mục đích", follow: "+ N" },
+            { word: "in order to", cat: "Mục đích", follow: "+ V (nguyên thể)" },
+            { word: "so as to", cat: "Mục đích", follow: "+ V (nguyên thể)" },
+
+            { word: "in addition to", cat: "Bổ sung", follow: "+ N / V-ing" },
+            { word: "apart from", cat: "Bổ sung", follow: "+ N / V-ing" },
+            { word: "as well as", cat: "Bổ sung", follow: "+ N / V-ing" },
+            { word: "in case of", cat: "Điều kiện", follow: "+ N / V-ing" },
+            { word: "in the event of", cat: "Điều kiện", follow: "+ N / V-ing" },
+            { word: "by means of", cat: "Cách thức", follow: "+ N / V-ing" },
+            { word: "in the form of", cat: "Cách thức", follow: "+ N / V-ing" },
+            { word: "according to", cat: "Dẫn nguồn", follow: "+ N / V-ing" }
+        ];
+
+        // Tập hợp các phương án nhiễu
+        const poolOptions = [
+            { cat: "Nhượng bộ / Trái ngược", follow: "+ N / V-ing" },
+            { cat: "Nhượng bộ / Trái ngược", follow: "+ N" },
+            { cat: "Nguyên nhân – Kết quả", follow: "+ N" },
+            { cat: "Nguyên nhân – Kết quả", follow: "+ V-ing" },
+            { cat: "Mục đích", follow: "+ V-ing" },
+            { cat: "Mục đích", follow: "+ N" },
+            { cat: "Mục đích", follow: "+ V (nguyên thể)" },
+            { cat: "Bổ sung", follow: "+ N / V-ing" },
+            { cat: "Điều kiện", follow: "+ N / V-ing" },
+            { cat: "Cách thức", follow: "+ N / V-ing" },
+            { cat: "Dẫn nguồn", follow: "+ N / V-ing" }
+        ];
+
+        let questions = [];
+        let curIdx = 0;
+        let score = 0;
+        let lives = 2;
+        let lockInput = false;
+
+        function startGame() {
+            // Trộn ngẫu nhiên câu hỏi
+            questions = [...dataset].sort(() => Math.random() - 0.5);
+            curIdx = 0;
+            score = 0;
+            lives = 2;
+
+            document.getElementById("game-zone").style.display = "block";
+            document.getElementById("end-zone").style.display = "none";
+
+            updateHUD();
+            loadQuestion();
+        }
+
+        function updateHUD() {
+            document.getElementById("progress").innerText = `${curIdx + 1}/${questions.length}`;
+            document.getElementById("score").innerText = score;
+            document.getElementById("lives").innerText = lives === 2 ? "❤️❤️" : (lives === 1 ? "❤️🖤" : "🖤🖤");
+        }
+
+        function loadQuestion() {
+            if (curIdx >= questions.length) {
+                showEndScreen(true);
+                return;
+            }
+
+            lockInput = false;
+            let q = questions[curIdx];
+
+            document.getElementById("phrase").innerText = q.word;
+            updateHUD();
+
+            // Sinh đáp án đúng + 3 đáp án nhiễu
+            let choices = [{ cat: q.cat, follow: q.follow }];
+
+            while (choices.length < 4) {
+                let rnd = poolOptions[Math.floor(Math.random() * poolOptions.length)];
+                if (!choices.some(c => c.cat === rnd.cat && c.follow === rnd.follow)) {
+                    choices.push(rnd);
+                }
+            }
+
+            // Trộn vị trí 4 rương
+            choices.sort(() => Math.random() - 0.5);
+
+            let html = "";
+            choices.forEach(c => {
+                let isCorrect = (c.cat === q.cat && c.follow === q.follow);
+                html += `
+                    <button class="chest-btn" data-correct="${isCorrect}" onclick="openChest(this)">
+                        <span>📦 ${c.cat}</span>
+                        <span class="sub-text">${c.follow}</span>
+                    </button>
+                `;
+            });
+
+            document.getElementById("options-box").innerHTML = html;
+        }
+
+        function openChest(btn) {
+            if (lockInput) return; // Chống spam click làm nhảy UI
+            lockInput = true;
+
+            let isCorrect = btn.getAttribute("data-correct") === "true";
+
+            if (isCorrect) {
+                btn.classList.add("correct");
+                score += 50; // +50 Tiền vàng
+            } else {
+                btn.classList.add("wrong");
+                lives--;
+                updateHUD();
+
+                // Lấp lánh đáp án đúng để học sinh ghi nhớ
+                document.querySelectorAll(".chest-btn").forEach(b => {
+                    if (b.getAttribute("data-correct") === "true") b.classList.add("correct");
+                });
+            }
+
+            setTimeout(() => {
+                if (lives <= 0) {
+                    showEndScreen(false);
+                } else {
+                    curIdx++;
+                    loadQuestion();
+                }
+            }, 850);
+        }
+
+        function showEndScreen(isWin) {
+            document.getElementById("game-zone").style.display = "none";
+            document.getElementById("end-zone").style.display = "block";
+
+            if (isWin) {
+                document.getElementById("end-icon").innerText = "👑";
+                document.getElementById("end-title").innerText = "BẬC THẦY HẢI TẶC!";
+                document.getElementById("end-desc").innerHTML = `Bạn đã chinh phục thành công toàn bộ 32 hòn đảo liên từ!<br>Tổng số vàng thu được: <b style="color:var(--gold);">${score} Gold</b>`;
+            } else {
+                document.getElementById("end-icon").innerText = "☠️";
+                document.getElementById("end-title").innerText = "TÀU BỊ ĐẮM!";
+                document.getElementById("end-desc").innerHTML = `Bạn đã hết mạng giữa hải trình.<br>Số vàng thu thập được: <b style="color:var(--gold);">${score} Gold</b>. Hãy ôn lại kiến thức và thử lại!`;
+            }
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
